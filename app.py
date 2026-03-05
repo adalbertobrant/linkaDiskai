@@ -4,8 +4,16 @@ from dotenv import load_dotenv
 import PyPDF2
 from google import genai
 
-# Carrega as variáveis de segurança e configuração do ficheiro .env
+# Mantemos o load_dotenv para quando você for rodar e testar na sua máquina local
 load_dotenv()
+
+# --- Função Auxiliar de Segurança ---
+def obter_configuracao(chave):
+    """Tenta buscar a variável no Streamlit Cloud (st.secrets). 
+       Se falhar, busca no ambiente local (os.getenv)."""
+    if chave in st.secrets:
+        return st.secrets[chave]
+    return os.getenv(chave)
 
 st.set_page_config(page_title="LinkedIn Analyzer Pro", page_icon="💼", layout="wide")
 
@@ -20,7 +28,10 @@ def extrair_texto_pdf(ficheiro_pdf):
 # Função para chamar o Gemini 1.5 Pro
 def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     try:
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        # Puxa a chave da API usando a nossa nova função robusta
+        api_key = obter_configuracao("GEMINI_API_KEY")
+        client = genai.Client(api_key=api_key)
+        
         conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
         
         resposta = client.models.generate_content(
@@ -31,13 +42,13 @@ def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     except Exception as e:
         return f"Ocorreu um erro ao comunicar com a API: {e}"
 
-# --- Sistema de Autenticação Simplificado ---
+# --- Sistema de Autenticação ---
 def verificar_senha():
     def checar_senha():
         senha_digitada = st.session_state["senha_input"]
+        senha_correta = obter_configuracao("SENHA_ACESSO")
         
-        # Agora compara o texto digitado diretamente com o texto do .env
-        if senha_digitada == os.getenv("SENHA_ACESSO"):
+        if senha_digitada == senha_correta:
             st.session_state["autenticado"] = True
             del st.session_state["senha_input"] 
         else:
@@ -56,7 +67,8 @@ def verificar_senha():
 # --- Lógica Principal da Aplicação ---
 if verificar_senha():
     
-    prompt_sistema = os.getenv("PROMPT_ANALISE_LINKEDIN")
+    # Puxa o prompt usando a nova função
+    prompt_sistema = obter_configuracao("PROMPT_ANALISE_LINKEDIN")
     
     st.title("💼 Analisador de Força do LinkedIn")
     st.markdown("Descubra o quão atrativo está o seu perfil para os recrutadores e receba recomendações.")
