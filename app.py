@@ -1,9 +1,8 @@
 import streamlit as st
-import hashlib
 import os
 from dotenv import load_dotenv
 import PyPDF2
-from google import genai # Importação atualizada para o novo SDK
+from google import genai
 
 # Carrega as variáveis de segurança e configuração do ficheiro .env
 load_dotenv()
@@ -18,16 +17,12 @@ def extrair_texto_pdf(ficheiro_pdf):
         texto += pagina.extract_text()
     return texto
 
-# Função para chamar o Gemini 1.5 Pro (Atualizada)
+# Função para chamar o Gemini 1.5 Pro
 def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     try:
-        # Instancia o cliente usando a nova estrutura do SDK
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        
-        # Junta o prompt de sistema com o conteúdo do currículo/perfil
         conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
         
-        # Faz a chamada à API indicando o modelo diretamente no método
         resposta = client.models.generate_content(
             model='gemini-1.5-pro',
             contents=conteudo_completo
@@ -36,13 +31,13 @@ def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     except Exception as e:
         return f"Ocorreu um erro ao comunicar com a API: {e}"
 
-# --- Sistema de Autenticação ---
+# --- Sistema de Autenticação Simplificado ---
 def verificar_senha():
     def checar_senha():
         senha_digitada = st.session_state["senha_input"]
-        hash_digitado = hashlib.sha256(senha_digitada.encode()).hexdigest()
         
-        if hash_digitado == os.getenv("SENHA_HASH_SHA256"):
+        # Agora compara o texto digitado diretamente com o texto do .env
+        if senha_digitada == os.getenv("SENHA_ACESSO"):
             st.session_state["autenticado"] = True
             del st.session_state["senha_input"] 
         else:
@@ -61,7 +56,6 @@ def verificar_senha():
 # --- Lógica Principal da Aplicação ---
 if verificar_senha():
     
-    # Puxamos o prompt do .env
     prompt_sistema = os.getenv("PROMPT_ANALISE_LINKEDIN")
     
     st.title("💼 Analisador de Força do LinkedIn")
