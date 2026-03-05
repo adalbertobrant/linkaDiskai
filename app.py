@@ -3,13 +3,10 @@ import hashlib
 import os
 from dotenv import load_dotenv
 import PyPDF2
-import google.generativeai as genai
+from google import genai # Importação atualizada para o novo SDK
 
 # Carrega as variáveis de segurança e configuração do ficheiro .env
 load_dotenv()
-
-# Configuração da API do Gemini usando a chave do .env
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 st.set_page_config(page_title="LinkedIn Analyzer Pro", page_icon="💼", layout="wide")
 
@@ -21,17 +18,20 @@ def extrair_texto_pdf(ficheiro_pdf):
         texto += pagina.extract_text()
     return texto
 
-# Função para chamar o Gemini 1.5 Pro
+# Função para chamar o Gemini 1.5 Pro (Atualizada)
 def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     try:
-        # Instancia o modelo 1.5 Pro
-        modelo = genai.GenerativeModel('gemini-1.5-pro')
+        # Instancia o cliente usando a nova estrutura do SDK
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         
         # Junta o prompt de sistema com o conteúdo do currículo/perfil
         conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
         
-        # Faz a chamada à API
-        resposta = modelo.generate_content(conteudo_completo)
+        # Faz a chamada à API indicando o modelo diretamente no método
+        resposta = client.models.generate_content(
+            model='gemini-1.5-pro',
+            contents=conteudo_completo
+        )
         return resposta.text
     except Exception as e:
         return f"Ocorreu um erro ao comunicar com a API: {e}"
@@ -84,6 +84,4 @@ if verificar_senha():
                 st.divider()
                 st.header("📊 Resultados da Análise")
                 
-                # Como pedimos ao Gemini para retornar em Markdown no prompt, 
-                # podemos renderizar a resposta diretamente no Streamlit
                 st.markdown(resultado_analise)
