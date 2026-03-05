@@ -4,16 +4,31 @@ from dotenv import load_dotenv
 import PyPDF2
 from google import genai
 
-# Mantemos o load_dotenv para quando você for rodar e testar na sua máquina local
 load_dotenv()
 
-# --- Função Auxiliar de Segurança ---
+# --- Função Auxiliar de Segurança com DEBUG ---
 def obter_configuracao(chave):
-    """Tenta buscar a variável no Streamlit Cloud (st.secrets). 
-       Se falhar, busca no ambiente local (os.getenv)."""
-    if chave in st.secrets:
-        return st.secrets[chave]
-    return os.getenv(chave)
+    print(f"[DEBUG] A tentar obter a chave: '{chave}'")
+    
+    # 1. Tenta pegar do painel Secrets do Streamlit Cloud
+    try:
+        if chave in st.secrets:
+            valor = st.secrets[chave]
+            print(f"[DEBUG] Sucesso! A chave '{chave}' foi encontrada no st.secrets.")
+            return valor
+        else:
+            print(f"[DEBUG] A chave '{chave}' NÃO está no st.secrets.")
+    except Exception as e:
+        print(f"[DEBUG] Erro ao aceder ao st.secrets: {e}")
+
+    # 2. Tenta pegar do ficheiro .env (ambiente local)
+    valor_env = os.getenv(chave)
+    if valor_env:
+        print(f"[DEBUG] Sucesso! A chave '{chave}' foi encontrada no os.getenv().")
+        return valor_env
+        
+    print(f"[DEBUG] ALERTA CRÍTICO: A chave '{chave}' não foi encontrada em lado nenhum!")
+    return None
 
 st.set_page_config(page_title="LinkedIn Analyzer Pro", page_icon="💼", layout="wide")
 
@@ -28,7 +43,6 @@ def extrair_texto_pdf(ficheiro_pdf):
 # Função para chamar o Gemini 1.5 Pro
 def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     try:
-        # Puxa a chave da API usando a nossa nova função robusta
         api_key = obter_configuracao("GEMINI_API_KEY")
         client = genai.Client(api_key=api_key)
         
@@ -42,17 +56,28 @@ def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     except Exception as e:
         return f"Ocorreu um erro ao comunicar com a API: {e}"
 
-# --- Sistema de Autenticação ---
+# --- Sistema de Autenticação com DEBUG ---
 def verificar_senha():
     def checar_senha():
-        senha_digitada = st.session_state["senha_input"]
+        print("\n=== INICIANDO TENTATIVA DE LOGIN ===")
+        
+        # Pega a senha que o utilizador digitou no input
+        senha_digitada = st.session_state.get("senha_input", "")
+        # Puxa a senha do sistema (Secrets ou .env)
         senha_correta = obter_configuracao("SENHA_ACESSO")
         
+        # O repr() vai mostrar se há espaços invisíveis, ex: 'hello_world_2026 '
+        print(f"[DEBUG] Senha digitada na tela: {repr(senha_digitada)}")
+        print(f"[DEBUG] Senha guardada no sistema: {repr(senha_correta)}")
+        
         if senha_digitada == senha_correta:
+            print("[DEBUG] RESULTADO: As senhas coincidem! Acesso liberado.")
             st.session_state["autenticado"] = True
-            del st.session_state["senha_input"] 
         else:
+            print("[DEBUG] RESULTADO: As senhas são DIFERENTES! Acesso negado.")
             st.session_state["autenticado"] = False
+        
+        print("======================================\n")
 
     if st.session_state.get("autenticado", False):
         return True
@@ -67,7 +92,6 @@ def verificar_senha():
 # --- Lógica Principal da Aplicação ---
 if verificar_senha():
     
-    # Puxa o prompt usando a nova função
     prompt_sistema = obter_configuracao("PROMPT_ANALISE_LINKEDIN")
     
     st.title("💼 Analisador de Força do LinkedIn")
