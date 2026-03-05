@@ -31,7 +31,7 @@ def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
         conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
         
         resposta = client.models.generate_content(
-            model='gemini-1.5-pro',
+            model='gemini-1.5-flash',
             contents=conteudo_completo
         )
         return resposta.text
