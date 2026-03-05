@@ -304,7 +304,7 @@ if ficheiro_upload is not None:
     if len(texto_extraido.strip()) > 100:
         with st.spinner("A gerar nuvem de palavras..."):
             img_buf = gerar_nuvem_palavras(texto_extraido)
-        st.image(img_buf, use_container_width=True)
+        st.image(img_buf, width="stretch")
     else:
         st.warning("Texto insuficiente para gerar a nuvem de palavras.")
 
@@ -328,7 +328,7 @@ if ficheiro_upload is not None:
         "recomendar as melhores vagas para o seu momento de carreira."
     )
 
-    if st.button("✨ Analisar Perfil com IA Agora", type="primary", use_container_width=True):
+    if st.button("✨ Analisar Perfil com IA Agora", type="primary", width="stretch"):
         with st.spinner("🤖 A analisar com o Gemini 2.0 Flash Lite. Por favor, aguarde..."):
             resultado_analise = analisar_perfil_com_gemini(texto_extraido, prompt_sistema)
 
