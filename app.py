@@ -22,8 +22,7 @@ def extrair_texto_pdf(ficheiro_pdf):
         texto += pagina.extract_text()
     return texto
 
-
-# Função para chamar a API do Gemini
+# Função para chamar o Gemini 2.0 Flash Lite
 def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
     try:
         api_key = obter_configuracao("GEMINI_API_KEY")
@@ -31,9 +30,8 @@ def analisar_perfil_com_gemini(texto_perfil, prompt_sistema):
         
         conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
         
-        # O modelo atualizado para o novo SDK
         resposta = client.models.generate_content(
-            model='gemini-2.0-flash', 
+            model='gemini-2.0-flash-lite',
             contents=conteudo_completo
         )
         return resposta.text
