@@ -1,6 +1,6 @@
 streamlit
 PyPDF2
-google-genai
+groq
 python-dotenv
 wordcloud
 matplotlib

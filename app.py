@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 import PyPDF2
-from google import genai
+from groq import Groq
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import re
@@ -160,45 +160,22 @@ def estimar_pontuacao_base(secoes, top_palavras, texto):
         pontos += 5
     return min(pontos, 70)  # Máx 70 visível — a IA revela o resto
 
-def extrair_tempo_espera(mensagem_erro):
-    """Extrai o tempo de espera em segundos da mensagem de erro 429."""
-    match = re.search(r'retry in (\d+(?:\.\d+)?)s', str(mensagem_erro))
-    if match:
-        return int(float(match.group(1))) + 2  # +2s de margem
-    return 60  # fallback: 60 segundos
-
-def analisar_perfil_com_gemini(texto_perfil, prompt_sistema, max_tentativas=3):
-    api_key = obter_configuracao("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
-    conteudo_completo = f"{prompt_sistema}\n\nPERFIL PARA ANÁLISE:\n{texto_perfil}"
-
-    for tentativa in range(1, max_tentativas + 1):
-        try:
-            resposta = client.models.generate_content(
-                model='gemini-2.0-flash-lite',
-                contents=conteudo_completo
-            )
-            return resposta.text
-
-        except Exception as e:
-            erro_str = str(e)
-            is_quota = "429" in erro_str or "RESOURCE_EXHAUSTED" in erro_str
-
-            if is_quota and tentativa < max_tentativas:
-                espera = extrair_tempo_espera(erro_str)
-                placeholder = st.empty()
-                for seg_restantes in range(espera, 0, -1):
-                    placeholder.warning(
-                        f"⏳ Limite de quota atingido. "
-                        f"A tentar novamente em **{seg_restantes}s**... "
-                        f"(tentativa {tentativa}/{max_tentativas})"
-                    )
-                    time.sleep(1)
-                placeholder.empty()
-            else:
-                return f"Ocorreu um erro ao comunicar com a API: {e}"
-
-    return "❌ Não foi possível obter resposta após várias tentativas. Tente novamente mais tarde."
+def analisar_perfil_com_ia(texto_perfil, prompt_sistema):
+    try:
+        api_key = obter_configuracao("GROQ_API_KEY")
+        client = Groq(api_key=api_key)
+        resposta = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": prompt_sistema},
+                {"role": "user",   "content": f"PERFIL PARA ANÁLISE:\n{texto_perfil}"}
+            ],
+            temperature=0.7,
+            max_tokens=2048,
+        )
+        return resposta.choices[0].message.content
+    except Exception as e:
+        return f"Ocorreu um erro ao comunicar com a API: {e}"
 
 # ============================================================
 # INTERFACE PRINCIPAL
@@ -329,8 +306,8 @@ if ficheiro_upload is not None:
     )
 
     if st.button("✨ Analisar Perfil com IA Agora", type="primary", width="stretch"):
-        with st.spinner("🤖 A analisar com o Gemini 2.0 Flash Lite. Por favor, aguarde..."):
-            resultado_analise = analisar_perfil_com_gemini(texto_extraido, prompt_sistema)
+        with st.spinner("🤖 A analisar com o Llama 3.3 70B (Groq). Por favor, aguarde..."):
+            resultado_analise = analisar_perfil_com_ia(texto_extraido, prompt_sistema)
 
         st.divider()
         st.header("📊 Resultados Completos da Análise IA")
